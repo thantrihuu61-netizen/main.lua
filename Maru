@@ -1,0 +1,318 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local parent = player:WaitForChild("PlayerGui")
+
+local old = parent:FindFirstChild("TDZ_TestUI")
+if old then old:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "TDZ_TestUI"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = parent
+
+local function make(class, props, target)
+    local object = Instance.new(class)
+    for key, value in pairs(props) do object[key] = value end
+    object.Parent = target
+    return object
+end
+local function round(object, radius)
+    make("UICorner", {CornerRadius = UDim.new(0, radius)}, object)
+end
+local function stroke(object, color, thickness)
+    make("UIStroke", {Color = color, Thickness = thickness or 1, Transparency = 0.35}, object)
+end
+local function tween(object, duration, props, style)
+    local t = TweenService:Create(object, TweenInfo.new(duration, style or Enum.EasingStyle.Quint, Enum.EasingDirection.Out), props)
+    t:Play()
+    return t
+end
+
+local clickSound = make("Sound", {Name = "IslandClick", SoundId = "rbxassetid://9118823101", Volume = 0.45}, gui)
+local function click()
+    pcall(function() clickSound:Play() end)
+end
+
+-- Dynamic Island: fixed at the top, slightly raised; not draggable.
+local island = make("TextButton", {
+    Name = "DynamicIsland", Size = UDim2.fromOffset(132, 44),
+    Position = UDim2.new(0.5, -66, 0, -7), BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+    Text = "", AutoButtonColor = false, ZIndex = 20
+}, gui)
+round(island, 24)
+stroke(island, Color3.fromRGB(55, 55, 68), 1)
+local islandIcon = make("ImageLabel", {
+    Size = UDim2.fromOffset(27, 27), Position = UDim2.new(0, 11, 0.5, -13),
+    BackgroundTransparency = 1, Image = "rbxassetid://79773252738743", ScaleType = Enum.ScaleType.Fit, ZIndex = 21
+}, island)
+round(islandIcon, 7)
+make("TextLabel", {
+    Size = UDim2.new(1, -48, 1, 0), Position = UDim2.fromOffset(44, 0),
+    BackgroundTransparency = 1, Text = "TDZ Hub", TextColor3 = Color3.new(1,1,1),
+    TextSize = 13, Font = Enum.Font.Arcade, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21
+}, island)
+
+-- Main window, inspired by the compact sidebar + settings layout in the reference.
+local main = make("Frame", {
+    Name = "MainUI", Size = UDim2.fromOffset(500, 300),
+    Position = UDim2.new(0.5, -250, 0.5, -150), BackgroundColor3 = Color3.fromRGB(9, 12, 18),
+    BackgroundTransparency = 1, BorderSizePixel = 0, Visible = false, ClipsDescendants = true
+}, gui)
+round(main, 17)
+stroke(main, Color3.fromRGB(71, 91, 116), 1.2)
+local mainScale = make("UIScale", {Scale = 0.8}, main)
+local function updateScale()
+    local camera = workspace.CurrentCamera
+    if camera then
+        local width = camera.ViewportSize.X
+        mainScale.Scale = math.clamp(width / 590, 0.58, 1)
+    end
+end
+updateScale()
+if workspace.CurrentCamera then
+    workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateScale)
+end
+
+local bg = make("ImageLabel", {
+    Name = "BackgroundImage", Size = UDim2.fromScale(1,1), BackgroundTransparency = 1,
+    Image = "rbxassetid://79773252738743", ImageTransparency = 0.83,
+    ScaleType = Enum.ScaleType.Crop, ZIndex = 0
+}, main)
+round(bg, 17)
+local tint = make("Frame", {
+    Size = UDim2.fromScale(1,1), BackgroundColor3 = Color3.fromRGB(8, 12, 19),
+    BackgroundTransparency = 0.08, BorderSizePixel = 0, ZIndex = 0
+}, main)
+round(tint, 17)
+
+local sidebar = make("Frame", {
+    Name = "Sidebar", Position = UDim2.fromOffset(8,8), Size = UDim2.new(0, 126, 1, -16),
+    BackgroundColor3 = Color3.fromRGB(13, 19, 28), BackgroundTransparency = 0.05, BorderSizePixel = 0, ZIndex = 1
+}, main)
+round(sidebar, 12)
+
+local brand = make("Frame", {
+    Position = UDim2.fromOffset(6,6), Size = UDim2.new(1,-12,0,48),
+    BackgroundColor3 = Color3.fromRGB(28, 43, 59), BorderSizePixel = 0, ZIndex = 2
+}, sidebar)
+round(brand, 8)
+local brandIcon = make("ImageLabel", {
+    Size = UDim2.fromOffset(30,30), Position = UDim2.fromOffset(8,9),
+    BackgroundTransparency = 1, Image = "rbxassetid://79773252738743", ScaleType = Enum.ScaleType.Fit, ZIndex = 3
+}, brand)
+make("TextLabel", {
+    Position = UDim2.fromOffset(43,7), Size = UDim2.new(1,-47,0,18), BackgroundTransparency = 1,
+    Text = "TDZ Hub", TextColor3 = Color3.fromRGB(245,248,255), TextSize = 11,
+    Font = Enum.Font.Arcade, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3
+}, brand)
+make("TextLabel", {
+    Position = UDim2.fromOffset(43,25), Size = UDim2.new(1,-47,0,14), BackgroundTransparency = 1,
+    Text = "[ Blox Fruits ]", TextColor3 = Color3.fromRGB(145,160,177), TextSize = 8,
+    Font = Enum.Font.Arcade, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3
+}, brand)
+
+local search = make("TextBox", {
+    Position = UDim2.fromOffset(6,60), Size = UDim2.new(1,-12,0,28),
+    BackgroundColor3 = Color3.fromRGB(24,34,46), Text = "", PlaceholderText = "Search...",
+    PlaceholderColor3 = Color3.fromRGB(130,145,160), TextColor3 = Color3.new(1,1,1),
+    TextSize = 9, Font = Enum.Font.Arcade, ClearTextOnFocus = false, ZIndex = 2
+}, sidebar)
+round(search, 7)
+
+local navItems = {"Status", "Farm Settings", "Main", "Multi Farm", "Quests", "Items"}
+local navButtons = {}
+
+-- Scrollable navigation keeps every tab inside the sidebar on short screens.
+local navScroll = make("ScrollingFrame", {
+    Name = "TabList",
+    Position = UDim2.fromOffset(6, 96),
+    Size = UDim2.new(1, -12, 1, -104),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    ScrollBarThickness = 3,
+    ScrollBarImageColor3 = Color3.fromRGB(100, 130, 155),
+    CanvasSize = UDim2.new(0, 0, 0, 0),
+    AutomaticCanvasSize = Enum.AutomaticSize.Y,
+    ScrollingDirection = Enum.ScrollingDirection.Y,
+    ClipsDescendants = true,
+    ZIndex = 2
+}, sidebar)
+local navLayout = make("UIListLayout", {
+    FillDirection = Enum.FillDirection.Vertical,
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    Padding = UDim.new(0, 6)
+}, navScroll)
+for i, name in ipairs(navItems) do
+    local button = make("TextButton", {
+        Name = name:gsub(" ", "") .. "Tab",
+        LayoutOrder = i,
+        Size = UDim2.new(1, -4, 0, 29),
+        BackgroundColor3 = i == 2 and Color3.fromRGB(30,43,58) or Color3.fromRGB(13,19,28),
+        BackgroundTransparency = i == 2 and 0 or 1,
+        Text = "   " .. name,
+        TextColor3 = i == 2 and Color3.fromRGB(235,244,255) or Color3.fromRGB(151,166,182),
+        TextSize = 9, Font = Enum.Font.Arcade, TextXAlignment = Enum.TextXAlignment.Left,
+        AutoButtonColor = false, ZIndex = 2
+    }, navScroll)
+    round(button, 7)
+    navButtons[name] = button
+end
+
+local content = make("Frame", {
+    Name = "Content", Position = UDim2.fromOffset(143,8), Size = UDim2.new(1,-151,1,-16),
+    BackgroundColor3 = Color3.fromRGB(11,16,24), BackgroundTransparency = 0.06, BorderSizePixel = 0, ZIndex = 1
+}, main)
+round(content, 12)
+
+local heading = make("TextLabel", {
+    Position = UDim2.fromOffset(14,9), Size = UDim2.new(1,-28,0,22), BackgroundTransparency = 1,
+    Text = "Farm Settings", TextColor3 = Color3.fromRGB(238,244,252), TextSize = 14,
+    Font = Enum.Font.Arcade, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3
+}, content)
+local subtitle = make("TextLabel", {
+    Position = UDim2.fromOffset(14,31), Size = UDim2.new(1,-28,0,17), BackgroundTransparency = 1,
+    Text = "Combat and farming preferences.", TextColor3 = Color3.fromRGB(130,145,163), TextSize = 8,
+    Font = Enum.Font.Arcade, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3
+}, content)
+
+local function settingRow(y, title, description)
+    local row = make("Frame", {
+        Position = UDim2.fromOffset(10,y), Size = UDim2.new(1,-20,0,48),
+        BackgroundColor3 = Color3.fromRGB(24,33,45), BackgroundTransparency = 0.05,
+        BorderSizePixel = 0, ZIndex = 2
+    }, content)
+    round(row, 8)
+    stroke(row, Color3.fromRGB(57,73,91), 0.7)
+    make("TextLabel", {
+        Position = UDim2.fromOffset(10,6), Size = UDim2.new(1,-85,0,15), BackgroundTransparency = 1,
+        Text = title, TextColor3 = Color3.fromRGB(228,237,247), TextSize = 9,
+        Font = Enum.Font.Arcade, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3
+    }, row)
+    make("TextLabel", {
+        Position = UDim2.fromOffset(10,23), Size = UDim2.new(1,-85,0,17), BackgroundTransparency = 1,
+        Text = description, TextColor3 = Color3.fromRGB(132,148,166), TextSize = 7,
+        Font = Enum.Font.Arcade, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3
+    }, row)
+    local toggle = make("TextButton", {
+        Position = UDim2.new(1,-43,0.5,-10), Size = UDim2.fromOffset(32,20),
+        BackgroundColor3 = Color3.fromRGB(43,54,68), Text = "", AutoButtonColor = false, ZIndex = 4
+    }, row)
+    round(toggle, 12)
+    local dot = make("Frame", {
+        Position = UDim2.fromOffset(3,3), Size = UDim2.fromOffset(14,14),
+        BackgroundColor3 = Color3.fromRGB(190,201,213), BorderSizePixel = 0, ZIndex = 5
+    }, toggle)
+    round(dot, 10)
+    local enabled = false
+    toggle.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        tween(toggle, 0.16, {BackgroundColor3 = enabled and Color3.fromRGB(74,151,190) or Color3.fromRGB(43,54,68)})
+        tween(dot, 0.16, {Position = enabled and UDim2.fromOffset(15,3) or UDim2.fromOffset(3,3), BackgroundColor3 = Color3.new(1,1,1)})
+    end)
+    return row
+end
+
+settingRow(57, "Auto Tween Speed", "Calculate travel speed from race, accessory and buffs.")
+local speedRow = make("Frame", {
+    Position = UDim2.fromOffset(10,111), Size = UDim2.new(1,-20,0,55),
+    BackgroundColor3 = Color3.fromRGB(24,33,45), BackgroundTransparency = 0.05, BorderSizePixel = 0, ZIndex = 2
+}, content)
+round(speedRow, 8)
+make("TextLabel", {
+    Position = UDim2.fromOffset(10,6), Size = UDim2.new(1,-20,0,15), BackgroundTransparency = 1,
+    Text = "Tween Speed", TextColor3 = Color3.fromRGB(228,237,247), TextSize = 9,
+    Font = Enum.Font.Arcade, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 3
+}, speedRow)
+local speedValue = 350
+local speedLabel = make("TextLabel", {
+    Position = UDim2.new(1,-52,0,5), Size = UDim2.fromOffset(42,16), BackgroundTransparency = 1,
+    Text = tostring(speedValue), TextColor3 = Color3.fromRGB(160,211,238), TextSize = 9,
+    Font = Enum.Font.Arcade, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 3
+}, speedRow)
+local track = make("TextButton", {
+    Position = UDim2.fromOffset(10,34), Size = UDim2.new(1,-20,0,5),
+    BackgroundColor3 = Color3.fromRGB(57,76,94), Text = "", AutoButtonColor = false, ZIndex = 3
+}, speedRow)
+round(track, 5)
+local fill = make("Frame", {Size = UDim2.new(0.65,0,1,0), BackgroundColor3 = Color3.fromRGB(112,177,211), BorderSizePixel = 0, ZIndex = 4}, track)
+round(fill, 5)
+local knob = make("Frame", {AnchorPoint = Vector2.new(0.5,0.5), Position = UDim2.new(0.65,0,0.5,0), Size = UDim2.fromOffset(11,11), BackgroundColor3 = Color3.fromRGB(145,205,235), BorderSizePixel = 0, ZIndex = 5}, track)
+round(knob, 8)
+track.MouseButton1Click:Connect(function()
+    speedValue = speedValue >= 500 and 100 or math.min(600, speedValue + 50)
+    speedLabel.Text = tostring(speedValue)
+    local ratio = math.clamp(speedValue / 600, 0.05, 1)
+    tween(fill, 0.15, {Size = UDim2.new(ratio,0,1,0)})
+    tween(knob, 0.15, {Position = UDim2.new(ratio,0,0.5,0)})
+end)
+settingRow(172, "Bypass Teleport", "Crosses the map by setting your spawn point and resetting.")
+settingRow(227, "Fast Teleport", "Warp across the map through island entrances.")
+
+-- Navigation highlight is visual only for this UI preview.
+for name, button in pairs(navButtons) do
+    button.MouseButton1Click:Connect(function()
+        for otherName, other in pairs(navButtons) do
+            other.BackgroundTransparency = otherName == name and 0 or 1
+            other.BackgroundColor3 = otherName == name and Color3.fromRGB(30,43,58) or Color3.fromRGB(13,19,28)
+            other.TextColor3 = otherName == name and Color3.fromRGB(235,244,255) or Color3.fromRGB(151,166,182)
+        end
+        heading.Text = name
+        subtitle.Text = name == "Farm Settings" and "Combat and farming preferences." or (name .. " preview section.")
+    end)
+end
+
+local opened, busy = false, false
+local function openUI()
+    if busy or opened then return end
+    busy, opened = true, true
+    click()
+    tween(island, 0.18, {Size = UDim2.fromOffset(144,46), Position = UDim2.new(0.5,-72,0,-8)})
+    task.wait(0.12)
+    main.Visible = true
+    mainScale.Scale = 0.78
+    main.BackgroundTransparency = 0.3
+    tween(mainScale, 0.32, {Scale = 1})
+    tween(main, 0.24, {BackgroundTransparency = 0})
+    task.wait(0.25)
+    tween(island, 0.18, {Size = UDim2.fromOffset(132,44), Position = UDim2.new(0.5,-66,0,-7)})
+    busy = false
+end
+local function closeUI()
+    if busy or not opened then return end
+    busy, opened = true, false
+    click()
+    tween(mainScale, 0.17, {Scale = 0.82})
+    tween(main, 0.17, {BackgroundTransparency = 0.35})
+    task.wait(0.18)
+    main.Visible = false
+    tween(island, 0.18, {Size = UDim2.fromOffset(132,44), Position = UDim2.new(0.5,-66,0,-7)})
+    task.wait(0.18)
+    busy = false
+end
+island.MouseButton1Click:Connect(function()
+    if opened then closeUI() else openUI() end
+end)
+
+-- Drag the main window by its top title area; Dynamic Island remains fixed.
+local dragging, dragStart, startPosition = false, nil, nil
+content.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if input.Position.Y <= content.AbsolutePosition.Y + 48 then
+            dragging, dragStart, startPosition = true, input.Position, main.Position
+        end
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPosition.X.Scale, startPosition.X.Offset + delta.X, startPosition.Y.Scale, startPosition.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+end)
+
+print("TDZ Dynamic Island UI Test loaded")
